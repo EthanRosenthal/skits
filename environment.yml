@@ -1,0 +1,38 @@
+name: skits
+channels:
+  - defaults
+dependencies:
+  - attrs=17.3.0=py36h5ab58ff_0
+  - ca-certificates=2017.08.26=h1d4fec5_0
+  - certifi=2017.11.5=py36hf29ccca_0
+  - coverage=4.4.2=py36hca7c4c5_0
+  - hypothesis=3.38.5=py36h196a6cc_0
+  - intel-openmp=2018.0.0=hc7b2577_8
+  - libedit=3.1=heed3624_0
+  - libffi=3.2.1=hd88cf55_4
+  - libgcc-ng=7.2.0=h7cc24e2_2
+  - libgfortran-ng=7.2.0=h9f7466a_2
+  - libstdcxx-ng=7.2.0=h7a57d05_2
+  - mkl=2018.0.1=h19d6760_4
+  - ncurses=6.0=h9df7e31_2
+  - numpy=1.14.0=py36h3dfced4_1
+  - openssl=1.0.2n=hb7f436b_0
+  - pip=9.0.1=py36h6c6f9ce_4
+  - pluggy=0.6.0=py36hb689045_0
+  - py=1.5.2=py36h29bf505_0
+  - pympler=0.5=py36h6b12e4d_0
+  - pytest=3.3.2=py36_0
+  - pytest-cov=2.5.1=py36hd4733f3_0
+  - python=3.6.4=hc3d631a_1
+  - readline=7.0=ha6073c6_4
+  - scikit-learn=0.19.1=py36h7aa7ec6_0
+  - scipy=1.0.0=py36hbf646e7_0
+  - setuptools=38.4.0=py36_0
+  - six=1.11.0=py36h372c433_1
+  - sqlite=3.21.0=h1bed415_0
+  - tk=8.6.7=hc745277_3
+  - wheel=0.30.0=py36hfd4bba0_1
+  - xz=5.2.3=h55aa19d_2
+  - zlib=1.2.11=ha838bed_2
+  - zope=1.0=py36_0
+  - zope.interface=4.4.3=py36h0ccbf34_0

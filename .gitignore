@@ -1,0 +1,7 @@
+.p
+*.pyc
+.cache
+.DS_STORE
+.idea/
+.coverage
+.eggs/
