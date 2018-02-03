@@ -1,4 +1,5 @@
 # skits
+[![Build Status](https://travis-ci.org/EthanRosenthal/skits.svg?branch=master)](https://travis-ci.org/EthanRosenthal/skits)
 
 A library for
 **S**ci**K**it-**I**nspired **T**ime **S**eries models.

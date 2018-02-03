@@ -9,6 +9,7 @@ class AutoregressiveTransformer(BaseEstimator, TransformerMixin):
     needs_refit = True
     
     def __init__(self, num_lags=5, pred_stride=1):
+        # TODO: super().__init__()
         self.num_lags = num_lags
         self.pred_stride = pred_stride
     
