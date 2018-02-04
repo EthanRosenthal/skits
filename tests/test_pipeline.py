@@ -1,9 +1,11 @@
 import numpy as np
 from sklearn.linear_model import LinearRegression, LogisticRegression
+from sklearn.pipeline import FeatureUnion
 
+from skits.feature_extraction import (AutoregressiveTransformer,
+                                      SeasonalTransformer)
 from skits.pipeline import ForecasterPipeline, ClassifierPipeline
-from skits.transformer import (ReversibleImputer, AutoregressiveTransformer,
-                               DifferenceTransformer)
+from skits.preprocessing import ReversibleImputer, DifferenceTransformer
 
 
 SEED = 666
@@ -14,33 +16,18 @@ class TestPipelines:
     steps = [
         ('pre_differencer', DifferenceTransformer(period=1)),
         ('pre_imputer_1', ReversibleImputer()),
-        ('lag_transformer', AutoregressiveTransformer(num_lags=3)),
+        ('features', FeatureUnion([
+            ('ar_transformer', AutoregressiveTransformer(num_lags=3)),
+            ('seasonal_transformer', SeasonalTransformer(seasonal_period=4))])),
         ('post_lag_imputer_2', ReversibleImputer()),
     ]
 
     dt = DifferenceTransformer(period=1)
     ri1 = ReversibleImputer()
-    at = AutoregressiveTransformer(num_lags=3)
+    fe = FeatureUnion([
+         ('ar_transformer', AutoregressiveTransformer(num_lags=3)),
+         ('seasonal_transformer', SeasonalTransformer(seasonal_period=4))])
     ri2 = ReversibleImputer()
-
-    def test_fit_transform(self):
-        y = np.random.random(20)
-
-        pipeline = ForecasterPipeline(list(self.steps))
-
-        pipeline_res = pipeline.fit_transform(y[:, np.newaxis], y)
-
-        explicit_res = self.ri2.fit_transform(
-                           self.at.fit_transform(
-                               self.ri1.fit_transform(
-                                   self.dt.fit_transform(y[:, np.newaxis],
-                                                         y)
-                               )
-                           )
-                       )
-        assert np.allclose(pipeline_res, explicit_res)
-        assert np.allclose(pipeline.inverse_transform(pipeline_res),
-                           y[:, np.newaxis])
 
     def test_predict(self):
         # Let's just see if it works

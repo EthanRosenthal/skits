@@ -2,7 +2,7 @@
 
 import numpy as np
 from sklearn.base import clone
-from sklearn.pipeline import Pipeline
+from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.utils.metaestimators import if_delegate_has_method
 from sklearn.utils.validation import check_memory
 
@@ -28,6 +28,16 @@ class _BasePipeline(Pipeline):
     
     def __init__(self, steps, memory=None):
         super().__init__(steps, memory=memory)
+        self._skits_validation()
+
+    def _skits_validation(self):
+        feature_extractors_found = False
+        for name, step in self.steps:
+            if name.startswith('pre') and feature_extractors_found:
+                raise ValueError('All preprocessors must come before '
+                                 'feature extractors')
+            elif isinstance(step, FeatureUnion):
+                feature_extractors_found = True
 
     def _transform(self, X, refit=False):
         Xt = X
@@ -208,7 +218,7 @@ class ForecasterPipeline(_BasePipeline):
 
 class ClassifierPipeline(_BasePipeline):
 
-    def __init__(self,steps, memory=None):
+    def __init__(self, steps, memory=None):
         super().__init__(steps, memory=memory)
 
     @if_delegate_has_method(delegate='_final_estimator')

@@ -4,64 +4,12 @@ from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.utils.validation import check_is_fitted
 
     
-class AutoregressiveTransformer(BaseEstimator, TransformerMixin):
-
-    needs_refit = True
-    
-    def __init__(self, num_lags=5, pred_stride=1):
-        # TODO: super().__init__()
-        self.num_lags = num_lags
-        self.pred_stride = pred_stride
-    
-    def fit(self, X, y=None):
-        self._final_points = X[-self.pred_stride:, 0]
-        return self
-
-    def transform(self, X, y=None, refit=False):
-
-        if refit:
-            self.fit(X, y=y)
-        
-        check_is_fitted(self, '_final_points')
-
-        X_trans = []
-        for i in range(self.num_lags, 0, -1):
-            X_trans.append([X[self.num_lags - i:-(i + self.pred_stride - 1), 0]])
-            
-        X_trans = np.vstack(X_trans).T
-
-        X_trans = self._fill_missing(X_trans)
-        return X_trans
-    
-    def _fill_missing(self, X):
-        missing_vals = np.zeros((self.num_lags + self.pred_stride - 1, 
-                                 self.num_lags),
-                                dtype=X.dtype)
-        missing_vals[:] = np.nan
-        return np.vstack((missing_vals, X))
-    
-    def inverse_transform(self, X):
-
-        return np.concatenate((
-
-            # First slice along the first window
-            X[self.num_lags + self.pred_stride - 1, :],
-
-            # Then, grab all lags up to the last
-            X[self.num_lags + self.pred_stride:, -1],
-
-            # And finally grab the last points
-            np.atleast_1d(self._final_points)
-
-        ))[:, np.newaxis]
-    
-    
 class ReversibleImputer(BaseEstimator, TransformerMixin):
 
     needs_refit = True
 
     def __init__(self):
-        pass
+        super().__init__()
     
     def fit(self, X, y=None):
         mask = np.isnan(X)
