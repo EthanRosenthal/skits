@@ -1,7 +1,8 @@
 import numpy as np
 import pytest
 
-from skits.preprocessing import (ReversibleImputer, DifferenceTransformer)
+from skits.preprocessing import (ReversibleImputer, DifferenceTransformer,
+                                 LogTransformer)
 
 
 class TestReversibleImputer:
@@ -71,3 +72,26 @@ class TestDifferenceTransformer:
               )
 
         assert np.allclose(X, inv)
+
+
+class TestLogTransformer:
+
+    def test_transform(self):
+        lt = LogTransformer()
+        X = np.random.random(100)[:, np.newaxis] + 2
+        Xt = lt.fit_transform(X)
+        assert np.allclose(Xt, np.log(X))
+
+    def test_invalid_inputs(self):
+        lt = LogTransformer()
+        X = np.array([-1.0])[:, np.newaxis]
+        with pytest.raises(ValueError):
+            lt.fit_transform(X)
+        X = np.array([0.0])[:, np.newaxis]
+        with pytest.raises(ValueError):
+            lt.fit_transform(X)
+
+    def test_inverse_transform(self):
+        lt = LogTransformer()
+        X = np.random.random(100)[:, np.newaxis] + 2
+        assert np.allclose(X, lt.inverse_transform(lt.fit_transform(X)))

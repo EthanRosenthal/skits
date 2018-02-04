@@ -85,3 +85,26 @@ class DifferenceTransformer(BaseEstimator, TransformerMixin):
                [:len(X_inv)])[:, np.newaxis]
 
         return np.vstack((X[:self._missing_idx_start, :], inv))
+
+
+class LogTransformer(BaseEstimator, TransformerMixin):
+
+    needs_refit = False
+
+    def __init__(self):
+        super().__init__()
+
+    def fit(self, X, y=None):
+        return self
+
+    def transform(self, X, y=None, refit=False):
+        with np.errstate(divide='raise', invalid='raise'):
+            try:
+                Xt = np.log(X)
+            except FloatingPointError:
+                raise ValueError('X cannot have negative or zero values')
+        return Xt
+
+    def inverse_transform(self, X):
+        return np.exp(X)
+
