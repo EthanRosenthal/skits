@@ -1,7 +1,9 @@
 import numpy as np
+import pytest
 
 from skits.feature_extraction import (AutoregressiveTransformer,
-                                      SeasonalTransformer)
+                                      SeasonalTransformer,
+                                      IntegratedTransformer)
 
 
 class TestAutoregressiveTransfomer:
@@ -67,3 +69,31 @@ class TestSeasonalTransfomer:
         diff = X - Xt
         err = diff[~np.isnan(diff)].sum()
         assert np.allclose(err, 0.0)
+
+
+class TestIntegratedTransformer:
+
+    X = np.array([1.0, 3.0, 6.0, 13.0, 15.0])[:, np.newaxis]
+
+    @pytest.mark.parametrize('num_lags, pred_stride, expected', [
+        (1, 1, np.array([np.nan, np.nan, 2.0, 3.0, 7.0])[:, np.newaxis]),
+        (1, 2, np.array([np.nan, np.nan, np.nan, 2.0, 3.0])[:, np.newaxis]),
+        (2, 1, np.array([
+            [np.nan, np.nan],
+            [np.nan, np.nan],
+            [np.nan, np.nan],
+            [2.0, 3.0],
+            [3.0, 7.0]
+        ])),
+        (2, 2, np.array([
+            [np.nan, np.nan],
+            [np.nan, np.nan],
+            [np.nan, np.nan],
+            [np.nan, np.nan],
+            [2.0, 3.0],
+        ])),
+    ])
+    def test_transform(self, num_lags, pred_stride, expected):
+        it = IntegratedTransformer(num_lags=num_lags, pred_stride=pred_stride)
+        Xt = it.fit_transform(self.X)
+        assert np.allclose(Xt, expected, equal_nan=True)

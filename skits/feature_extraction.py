@@ -38,3 +38,24 @@ class SeasonalTransformer(AutoregressiveTransformer):
         pred_stride = seasonal_period + pred_stride - 1
         super().__init__(num_lags=1, pred_stride=pred_stride)
 
+
+class IntegratedTransformer(BaseEstimator, TransformerMixin):
+
+    def __init__(self, num_lags=1, pred_stride=1):
+        super().__init__()
+        self.num_lags = num_lags
+        self.pred_stride = pred_stride
+        self.ar1 = AutoregressiveTransformer(
+            num_lags=self.num_lags,
+            pred_stride=self.pred_stride)
+        self.ar2 = AutoregressiveTransformer(
+            num_lags=self.num_lags,
+            pred_stride=1 + self.pred_stride)
+
+    def fit(self, X, y=None):
+        return self
+
+    def transform(self, X, y=None):
+        Xt1 = self.ar1.transform(X)
+        Xt2 = self.ar2.transform(X)
+        return Xt1 - Xt2
