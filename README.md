@@ -4,12 +4,7 @@
 A library for
 **S**ci**K**it-**I**nspired **T**ime **S**eries models.
 
-This library has two primary goals:
-
-1. Train time series prediction models using a similar API to `scikit-learn`.
-2. Allow for fully reversible transformations, such that predictions can be directly compared to the original time series.
-
-Similar to `scikit-learn`, this library consists of `preprocessors`, `feature_extractors`, and `pipelines`. 
+The primary goal of this library is to allow one to train time series prediction models using a similar API to `scikit-learn`. Consequently, similar to `scikit-learn`, this library consists of `preprocessors`, `feature_extractors`, and `pipelines`. 
 
 ## Installation
 
@@ -26,6 +21,13 @@ Or install with pip after creating a virtual environment
 ```bash
 pip install -r requirements.txt
 ```
+
+You can install the library locally with
+
+```bash
+pip install -e .
+```
+
 
 ## Preprocessors
 
@@ -50,7 +52,7 @@ assert np.allclose(X, X_inv)
 
 ## Feature Extractors
 
-After all preprocessing transformations are completed, multiple features may be built out of the time series. These can be built via feature extractors, which one should combine together into a large `FeatureUnion`. Current features include autoregressive and seasonal features.
+After all preprocessing transformations are completed, multiple features may be built out of the time series. These can be built via feature extractors, which one should combine together into a large `FeatureUnion`. Current features include autoregressive, seasonal, and integrated features (covering the AR and I of ARIMA models).
 
 
 ## Pipelines
