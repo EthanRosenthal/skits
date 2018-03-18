@@ -1,5 +1,6 @@
 import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.utils.validation import check_is_fitted
 
 
 class AutoregressiveTransformer(BaseEstimator, TransformerMixin):
@@ -59,3 +60,44 @@ class IntegratedTransformer(BaseEstimator, TransformerMixin):
         Xt1 = self.ar1.transform(X)
         Xt2 = self.ar2.transform(X)
         return Xt1 - Xt2
+
+
+class TrendTransformer(BaseEstimator, TransformerMixin):
+
+    def __init__(self):
+        super().__init__()
+
+    def fit(self, X, y=None):
+        return self
+
+    def transform(self, X, y=None):
+        return np.expand_dims(np.arange(X.shape[0]), axis=1)
+
+
+class FourierTransformer(BaseEstimator, TransformerMixin):
+
+    needs_refit = True
+
+    def __init__(self, period=10, max_order=10, step_size=1):
+        super().__init__()
+        self.period = period
+        self.max_order = max_order
+        self.step_size = step_size
+
+    def fit(self, X, y=None):
+        return self
+
+    def _get_trig_args(self, X):
+        trig_args = ((2 * np.pi / self.period)
+                     * np.arange(1, self.max_order + 1, self.step_size))
+        time = np.arange(X.shape[0])
+        trig_args = trig_args[np.newaxis, :] * time[:, np.newaxis]
+        return trig_args
+
+    def transform(self, X, y=None):
+        trig_args = self._get_trig_args(X)
+        cos = np.cos(trig_args)
+        sin = np.sin(trig_args)
+        fourier_terms = np.hstack((cos, sin))
+        return fourier_terms
+

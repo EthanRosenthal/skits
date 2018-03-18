@@ -102,7 +102,7 @@ class ForecasterPipeline(_BasePipeline):
 
         return Xt, fit_params_steps[self.steps[-1][0]], y
 
-    def fit(self, X, y=None, **fit_params):
+    def fit(self, X, y=None, start_idx=0, **fit_params):
         """
         Stolen from scikit-learn
 
@@ -128,7 +128,7 @@ class ForecasterPipeline(_BasePipeline):
         """
         Xt, fit_params, y = self._fit(X, y, **fit_params)
         if self._final_estimator is not None:
-            self._final_estimator.fit(Xt, y, **fit_params)
+            self._final_estimator.fit(Xt[start_idx:, :], y[start_idx:], **fit_params)
 
         return self
 
@@ -166,8 +166,18 @@ class ForecasterPipeline(_BasePipeline):
         else:
             return last_step.fit(Xt, y, **fit_params).transform(Xt)
 
+    def inverse_transform(self, X, y=None):
+        Xt = X.copy()
+        for name, step in self.steps[-2::-1]:
+            if name.startswith('pre_'):
+                if Xt.ndim == 1:
+                    Xt = Xt[:, np.newaxis]
+                Xt = step.inverse_transform(Xt)
+
+        return Xt
+
     @if_delegate_has_method(delegate='_final_estimator')
-    def predict(self, X, to_scale=False, refit=True):
+    def predict(self, X, to_scale=False, refit=True, start_idx=0):
         """
         NOTE: Most of this method stolen from scikit-learn
 
@@ -189,31 +199,29 @@ class ForecasterPipeline(_BasePipeline):
                 else:
                     Xt = transform.transform(Xt)
 
-        prediction = self.steps[-1][-1].predict(Xt)
+        prediction = self.steps[-1][-1].predict(Xt[start_idx:, :])
         if to_scale:
-            for name, step in self.steps[-2::-1]:
-                if name.startswith('pre_'):
-                    if prediction.ndim == 1:
-                        prediction = prediction[:, np.newaxis]
-                    prediction = step.inverse_transform(prediction)
+            prediction = self.inverse_transform(prediction)
 
         return prediction.squeeze()
 
-    def forecast(self, X, start_idx):
+    def forecast(self, X, start_idx, to_scale=True):
         # TODO:
         # Assert the model is fitted
         # Assert start_idx is > num_lags + pred_stride
         # Don't bother to re-transform the whole series every time.
 
-        X_init = self.predict(X[:start_idx], to_scale=True,
-                              refit=True)[:, np.newaxis]
+        X_init = self.predict(X[:start_idx], to_scale=False,
+                              refit=True)
+        X_init = np.expand_dims(X_init, axis=1)
 
         for idx in range(start_idx, len(X)):
-            next_point = self.predict(X_init, to_scale=True,
-                                      refit=False)[-1, np.newaxis]
+            next_point = self.predict(X_init, to_scale=False,
+                                      refit=False)[-1]
+            next_point = np.expand_dims(next_point, axis=1)
             X_init = np.vstack((X_init, next_point))
 
-        return X_init
+        return self.inverse_transform(X_init) if to_scale else X_init
 
 
 class ClassifierPipeline(_BasePipeline):

@@ -3,7 +3,9 @@ import pytest
 
 from skits.feature_extraction import (AutoregressiveTransformer,
                                       SeasonalTransformer,
-                                      IntegratedTransformer)
+                                      IntegratedTransformer,
+                                      TrendTransformer,
+                                      FourierTransformer)
 
 
 class TestAutoregressiveTransfomer:
@@ -97,3 +99,56 @@ class TestIntegratedTransformer:
         it = IntegratedTransformer(num_lags=num_lags, pred_stride=pred_stride)
         Xt = it.fit_transform(self.X)
         assert np.allclose(Xt, expected, equal_nan=True)
+
+
+class TestTrendTransformer:
+
+    def test_fit_transform(self):
+        X = np.array([[1.0], [10.0], [20.0]])
+        tt = TrendTransformer()
+        Xt = tt.fit_transform(X)
+        assert np.allclose(Xt, np.array([[0.0], [1.0], [2.0]]))
+
+
+class TestFourierTransformer:
+
+    X = np.array([1.0, 3.0, 6.0])[:, np.newaxis]
+
+    @pytest.mark.parametrize('period, max_order, step_size, expected', [
+        (3, 3, 1, np.array([
+            [0., 0., 0.],
+            [2.0943951, 4.1887902, 6.28318531],
+            [4.1887902, 8.37758041, 12.56637061]
+        ])),
+        (3, 2, 1, np.array([
+            [0., 0.],
+            [2.0943951, 4.1887902],
+            [4.1887902, 8.37758041]
+        ])),
+        (3, 3, 2, np.array([
+            [0., 0.],
+            [2.0943951, 6.28318531],
+            [4.1887902, 12.56637061]
+        ]))
+    ])
+    def test__get_trig_args(self, period, max_order, step_size, expected):
+        ft = FourierTransformer(period=period,
+                                max_order=max_order,
+                                step_size=step_size)
+        trig_args = ft._get_trig_args(self.X)
+        np.allclose(trig_args, expected)
+
+    def test_fit_transform(self, mocker):
+        mocker.patch(
+            'skits.feature_extraction.FourierTransformer._get_trig_args',
+            return_value=np.array([[0.0, 0.0],
+                                   [np.pi, np.pi/2]])
+        )
+        ft = FourierTransformer(period=3, max_order=2, step_size=1)
+
+        Xt = ft.fit_transform(self.X)
+        expected = np.array([
+            [1.0, 1.0, 0.0, 0.0],
+            [-1, 0.0, 0.0, 1.0]
+        ])
+        assert np.allclose(Xt, expected)
