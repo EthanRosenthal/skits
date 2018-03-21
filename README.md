@@ -29,6 +29,7 @@ pip install -e .
 ```
 
 
+
 ## Preprocessors
 
 The preprocessors expect to receive time series data, and then end up storing some data about the time series such that they can fully invert a transform. The following example shows how to create a `DifferenceTransformer` transform data, and then invert it back to its original form. The `DifferenceTransformer` subtracts the point shifted by `period` away from each point.
