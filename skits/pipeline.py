@@ -1,10 +1,10 @@
-# from functools import wraps
-
 import numpy as np
 from sklearn.base import clone
 from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.utils.metaestimators import if_delegate_has_method
 from sklearn.utils.validation import check_memory
+
+from skits.preprocessing import expand_dim_if_needed
 
 
 def _fit_transform_one(transformer, weight, X, y,
@@ -78,6 +78,10 @@ class ForecasterPipeline(_BasePipeline):
             if transformer is None:
                 pass
             else:
+                # For the HorizonTransformer right now.
+                y_only = getattr(transformer, 'y_only', False)
+                _Xt = y.copy() if y_only else Xt
+
                 if hasattr(memory, 'cachedir') and memory.cachedir is None:
                     # we do not clone when caching is disabled to preserve
                     # backward compatibility
@@ -85,16 +89,21 @@ class ForecasterPipeline(_BasePipeline):
                 else:
                     cloned_transformer = clone(transformer)
                 # Fit or load from cache the current transfomer
-                Xt, fitted_transformer = fit_transform_one_cached(
-                    cloned_transformer, None, Xt, y,
+                _Xt, fitted_transformer = fit_transform_one_cached(
+                    cloned_transformer, None, _Xt, y,
                     **fit_params_steps[name])
                 # Replace the transformer of the step with the fitted
                 # transformer. This is necessary when loading the transformer
                 # from the cache.
                 self.steps[step_idx] = (name, fitted_transformer)
 
+                if y_only:
+                    y = _Xt
+                else:
+                    Xt = _Xt
+
                 # This is so ugly :(
-                if name.startswith('pre_'):
+                if name.startswith('pre_') and not y_only:
                     y = transformer.transform(y[:, np.newaxis]).squeeze().copy()
 
         if self._final_estimator is None:
@@ -102,7 +111,8 @@ class ForecasterPipeline(_BasePipeline):
 
         return Xt, fit_params_steps[self.steps[-1][0]], y
 
-    def fit(self, X, y=None, start_idx=0, **fit_params):
+    def fit(self, X, y=None, start_idx=0, end_idx=-1,
+            **fit_params):
         """
         Stolen from scikit-learn
 
@@ -128,7 +138,8 @@ class ForecasterPipeline(_BasePipeline):
         """
         Xt, fit_params, y = self._fit(X, y, **fit_params)
         if self._final_estimator is not None:
-            self._final_estimator.fit(Xt[start_idx:, :], y[start_idx:], **fit_params)
+            self._final_estimator.fit(Xt[start_idx:, :], y[start_idx:],
+                                      **fit_params)
 
         return self
 
@@ -169,7 +180,7 @@ class ForecasterPipeline(_BasePipeline):
     def inverse_transform(self, X, y=None):
         Xt = X
         for name, step in self.steps[-2::-1]:
-            if name.startswith('pre_'):
+            if name.startswith('pre_') and not getattr(step, 'y_only', False):
                 if Xt.ndim == 1:
                     Xt = Xt[:, np.newaxis]
                 Xt = step.inverse_transform(Xt)
@@ -194,6 +205,9 @@ class ForecasterPipeline(_BasePipeline):
         Xt = X.copy()
         for name, transform in self.steps[:-1]:
             if transform is not None:
+                y_only = getattr(transform, 'y_only', False)
+                if y_only:
+                    continue
                 if _needs_refit(transform) and refit:
                     Xt = transform.transform(Xt, refit=True)
                 else:
@@ -201,24 +215,65 @@ class ForecasterPipeline(_BasePipeline):
 
         prediction = self.steps[-1][-1].predict(Xt)
         if to_scale:
-            prediction = self.inverse_transform(prediction)
+            prediction = expand_dim_if_needed(prediction)
+            for idx in range(prediction.shape[1]):
+                prediction[:, [idx]] = self.inverse_transform(prediction[:, [idx]])
         return prediction[start_idx:].squeeze()
 
-    def forecast(self, X, start_idx):
+    def forecast(self, X, start_idx, trans_window=None):
+        """
+        Run out of sample predictions. That is, predict on X up until start_idx,
+        use the predictions to concatenate data onto X, and continue predicting
+        for the full length of X.
+
+        Parameters
+        ----------
+        X : iterable
+            Data to predict on. Must fulfill input requirements of first step
+            of the pipeline.
+        start_idx : int
+            Index of X on which to start forecasting.
+        trans_window : int (optional)
+            Number of previous values of X necessary for transforming X into
+            features. Set this to speed up forecasting such that you do not have
+            to re-transform X for every prediction step of forecasting.
+
+        Returns
+        -------
+
+        """
         # TODO:
         # Assert the model is fitted
-        # Assert start_idx is > num_lags + pred_stride
-        # Don't bother to re-transform the whole series every time.
+        # Assert start_idx is > num_lags + pred_stride. This one can cause
+        # everything to turn nan.
 
-        X_init = self.predict(X[:start_idx], to_scale=True,
-                              refit=True)
-        X_init = np.expand_dims(X_init, axis=1)
+        if trans_window is not None:
+            assert start_idx > trans_window, (
+                'start_idx must be > than trans_window')
 
+        # Run the prediction up until the starting index.
+        # Note: We have to expand dims for multioutput results.
+        X_init = expand_dim_if_needed(
+            self.predict(X[:start_idx], to_scale=True, refit=True)
+        )[:, 0]
+
+        # Create the final prediction matrix and fill in all predictions up to
+        # the starting index.
+        X_total = np.empty((X.shape[0], 1), dtype=np.float32)
+        X_total[:X_init.shape[0], 0] = X_init
+
+        # For each out of sample point (aka >= start_idx)
         for idx in range(start_idx, len(X)):
-            next_point = self.predict(X_init, to_scale=True,
-                                      refit=False)[-1]
-            next_point = np.expand_dims(next_point, axis=1)
-            X_init = np.vstack((X_init, next_point))
+
+            # Predict the next point
+            offset = trans_window or idx
+            next_point = expand_dim_if_needed(
+                self.predict(X_total[idx - offset:idx], to_scale=True,
+                             refit=False)
+            )[-1, 0]
+
+            # And add that point to the total prediction matrix.
+            X_total[idx, :] = next_point
 
         return X_init
 
@@ -229,7 +284,7 @@ class ClassifierPipeline(_BasePipeline):
         super().__init__(steps, memory=memory)
 
     @if_delegate_has_method(delegate='_final_estimator')
-    def predict(self, X):
+    def predict(self, X, refit=True):
         """
         NOTE: Most of this method stolen from scikit-learn.
         Only difference is that I want to squeeze the output.
@@ -247,7 +302,7 @@ class ClassifierPipeline(_BasePipeline):
         Xt = X
         for name, transform in self.steps[:-1]:
             if transform is not None:
-                if _needs_refit(transform):
+                if _needs_refit(transform) and refit:
                     Xt = transform.transform(Xt, refit=True)
                 else:
                     Xt = transform.transform(Xt)

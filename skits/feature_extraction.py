@@ -1,9 +1,9 @@
 import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
-from sklearn.utils.validation import check_is_fitted
 
 
 class AutoregressiveTransformer(BaseEstimator, TransformerMixin):
+
 
     def __init__(self, num_lags=5, pred_stride=1):
         super().__init__()
@@ -11,6 +11,7 @@ class AutoregressiveTransformer(BaseEstimator, TransformerMixin):
         self.pred_stride = pred_stride
 
     def fit(self, X, y=None):
+        self._final_points = X[-self.pred_stride:, 0]
         return self
 
     def transform(self, X, y=None):
@@ -31,6 +32,13 @@ class AutoregressiveTransformer(BaseEstimator, TransformerMixin):
                                 dtype=X.dtype)
         missing_vals[:] = np.nan
         return np.vstack((missing_vals, X))
+
+    def inverse_transform(self, X):
+        return np.concatenate((
+            X[self.num_lags + self.pred_stride - 1, :], # Slice along first window
+            X[self.num_lags + self.pred_stride:, -1], # Then grab all single-lag up to last one
+            np.atleast_1d(self._final_points))
+        )[:, np.newaxis]
 
 
 class SeasonalTransformer(AutoregressiveTransformer):
@@ -75,8 +83,6 @@ class TrendTransformer(BaseEstimator, TransformerMixin):
 
 
 class FourierTransformer(BaseEstimator, TransformerMixin):
-
-    needs_refit = True
 
     def __init__(self, period=10, max_order=10, step_size=1):
         super().__init__()

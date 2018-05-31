@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from skits.preprocessing import (ReversibleImputer, DifferenceTransformer,
-                                 LogTransformer)
+                                 LogTransformer, HorizonTransformer)
 
 
 class TestReversibleImputer:
@@ -95,3 +95,21 @@ class TestLogTransformer:
         lt = LogTransformer()
         X = np.random.random(100)[:, np.newaxis] + 2
         assert np.allclose(X, lt.inverse_transform(lt.fit_transform(X)))
+
+
+class TestHorizonTransformer:
+
+    def test_transform(self):
+        ht = HorizonTransformer(horizon=2)
+        X = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
+        Xt = ht.fit_transform(X, X)
+        expected = np.array([[1.0, 2.0], [2.0, 3.0], [3.0, 4.0],
+                             [np.nan, np.nan], [np.nan, np.nan]])
+        assert np.allclose(Xt, expected, equal_nan=True)
+
+    def test_inverse_transform(self):
+        X = np.arange(10, dtype=np.float32)[:, np.newaxis]
+        ht = HorizonTransformer(horizon=2)
+        Xt = ht.fit_transform(X, X.squeeze())
+
+        assert np.allclose(X, ht.inverse_transform(Xt))

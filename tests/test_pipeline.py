@@ -5,10 +5,11 @@ from sklearn.pipeline import FeatureUnion
 from skits.feature_extraction import (AutoregressiveTransformer,
                                       SeasonalTransformer)
 from skits.pipeline import ForecasterPipeline, ClassifierPipeline
-from skits.preprocessing import ReversibleImputer, DifferenceTransformer
+from skits.preprocessing import (ReversibleImputer, DifferenceTransformer,
+                                 HorizonTransformer)
 
 
-SEED = 666
+SEED = 666  # \m/
 
 
 class TestPipelines:
@@ -79,3 +80,45 @@ class TestPipelines:
         y_pred = pipeline.predict(y[:, np.newaxis])
         assert (y_pred == y_true).mean() > 0.75
 
+    def test_multiouput_prediction(self):
+        # TODO: Make this a real test
+
+        steps = [
+            ('pre_horizon', HorizonTransformer(horizon=4)),
+            ('pre_imputer', ReversibleImputer(y_only=True)),
+            ('features', FeatureUnion([
+                ('ar_transformer', AutoregressiveTransformer(num_lags=3))])),
+            ('post_lag_imputer', ReversibleImputer()),
+            ('regressor', LinearRegression())
+        ]
+
+        pipeline = ForecasterPipeline(steps)
+
+        l = np.linspace(0, 1, 100)
+        y = np.sin(2 * np.pi * 5 * l) + np.random.normal(0, .1, size=100)
+
+        pipeline.fit(y[:, np.newaxis], y)
+
+        pipeline.predict(y[:, np.newaxis], to_scale=True, refit=True)
+
+    def test_multiouput_forecast(self):
+        # TODO: Make this a real test
+
+        steps = [
+            ('pre_horizon', HorizonTransformer(horizon=4)),
+            ('pre_imputer', ReversibleImputer(y_only=True)),
+            ('features', FeatureUnion([
+                (
+                'ar_transformer', AutoregressiveTransformer(num_lags=3))])),
+            ('post_lag_imputer', ReversibleImputer()),
+            ('regressor', LinearRegression())
+        ]
+
+        pipeline = ForecasterPipeline(steps)
+
+        l = np.linspace(0, 1, 100)
+        y = np.sin(2 * np.pi * 5 * l) + np.random.normal(0, .1, size=100)
+
+        pipeline.fit(y[:, np.newaxis], y)
+
+        pipeline.forecast(y[:, np.newaxis], 20)

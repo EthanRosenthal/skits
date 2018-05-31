@@ -3,13 +3,22 @@ from numpy.lib.stride_tricks import as_strided
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.utils.validation import check_is_fitted
 
+from skits.feature_extraction import AutoregressiveTransformer
+
+
+def expand_dim_if_needed(arr):
+    if arr.ndim == 1:
+        return np.expand_dims(arr, axis=1)
+    return arr
+
     
 class ReversibleImputer(BaseEstimator, TransformerMixin):
 
     needs_refit = True
 
-    def __init__(self):
+    def __init__(self, y_only=False):
         super().__init__()
+        self.y_only = y_only
     
     def fit(self, X, y=None):
         mask = np.isnan(X)
@@ -108,3 +117,36 @@ class LogTransformer(BaseEstimator, TransformerMixin):
     def inverse_transform(self, X):
         return np.exp(X)
 
+
+class HorizonTransformer(BaseEstimator, TransformerMixin):
+
+    needs_refit = True
+    y_only = True
+
+    def __init__(self, horizon=2):
+        super().__init__()
+        if horizon < 2:
+            raise ValueError('horizon must be greater than 1')
+        self.horizon = horizon
+        self.autoregressive_transformer = AutoregressiveTransformer(
+            num_lags=self.horizon,
+            pred_stride=1
+        )
+
+    def fit(self, X, y=None):
+        self.autoregressive_transformer.fit(expand_dim_if_needed(X))
+        return self
+
+    def transform(self, X, y=None, refit=False):
+        X = expand_dim_if_needed(X)
+        if refit:
+            self.autoregressive_transformer.fit(X)
+        Xt = self.autoregressive_transformer.transform(X)
+        # Need to move beginning of Xt to the end.
+        Xt = np.vstack((Xt[self.horizon:, :], Xt[:self.horizon, :]))
+        # TODO: replace beginning with nans?
+        return Xt
+
+    def inverse_transform(self, X, y=None):
+        Xt = np.vstack((X[-self.horizon:, :], X[:-self.horizon, :]))
+        return self.autoregressive_transformer.inverse_transform(Xt)
