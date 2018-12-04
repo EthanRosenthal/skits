@@ -275,7 +275,7 @@ class ForecasterPipeline(_BasePipeline):
             # And add that point to the total prediction matrix.
             X_total[idx, :] = next_point
 
-        return X_init
+        return X_total
 
 
 class ClassifierPipeline(_BasePipeline):
