@@ -187,6 +187,14 @@ class ForecasterPipeline(_BasePipeline):
 
         return Xt
 
+    def transform_y(self, y):
+        yt = y
+        for name, step in self.steps:
+            if getattr(step, 'y_only', False):
+                yt = expand_dim_if_needed(yt)
+                yt = step.transform(yt, refit=True)
+        return yt
+
     @if_delegate_has_method(delegate='_final_estimator')
     def predict(self, X, to_scale=False, refit=True, start_idx=0):
         """
@@ -273,7 +281,7 @@ class ForecasterPipeline(_BasePipeline):
             )[-1, 0]
 
             # And add that point to the total prediction matrix.
-            X_total[idx, :] = next_point
+            X_total[idx, 0] = next_point
 
         return X_total
 

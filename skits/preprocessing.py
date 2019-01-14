@@ -150,3 +150,7 @@ class HorizonTransformer(BaseEstimator, TransformerMixin):
     def inverse_transform(self, X, y=None):
         Xt = np.vstack((X[-self.horizon:, :], X[:-self.horizon, :]))
         return self.autoregressive_transformer.inverse_transform(Xt)
+
+    def fit_transform(self, X, y=None):
+        return self.fit(X).transform(X)
+
