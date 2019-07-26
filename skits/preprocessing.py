@@ -11,7 +11,7 @@ def expand_dim_if_needed(arr):
         return np.expand_dims(arr, axis=1)
     return arr
 
-    
+
 class ReversibleImputer(BaseEstimator, TransformerMixin):
 
     needs_refit = True
@@ -19,13 +19,13 @@ class ReversibleImputer(BaseEstimator, TransformerMixin):
     def __init__(self, y_only=False):
         super().__init__()
         self.y_only = y_only
-    
+
     def fit(self, X, y=None):
         mask = np.isnan(X)
         self._missing_idxs = np.where(mask)
         self._mean = X[~mask].mean()
         return self
-    
+
     def transform(self, X, y=None, refit=False):
         if refit:
             self.fit(X, y=y)
@@ -33,7 +33,7 @@ class ReversibleImputer(BaseEstimator, TransformerMixin):
         check_is_fitted(self, '_mean')
         X[self._missing_idxs] = self._mean
         return X
-    
+
     def inverse_transform(self, X):
         X[self._missing_idxs] = np.nan
         return X
@@ -109,13 +109,13 @@ class LogTransformer(BaseEstimator, TransformerMixin):
     def transform(self, X, y=None, refit=False):
         with np.errstate(divide='raise', invalid='raise'):
             try:
-                Xt = np.log(X)
+                Xt = np.log(1+X)
             except FloatingPointError:
-                raise ValueError('X cannot have negative or zero values')
+                raise ValueError('X cannot have negative values')
         return Xt
 
     def inverse_transform(self, X):
-        return np.exp(X)
+        return np.exp(X)-1
 
 
 class HorizonTransformer(BaseEstimator, TransformerMixin):

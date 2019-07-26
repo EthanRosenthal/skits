@@ -25,7 +25,7 @@ def _needs_refit(transform):
 
 
 class _BasePipeline(Pipeline):
-    
+
     def __init__(self, steps, memory=None):
         super().__init__(steps, memory=memory)
         self._skits_validation()
@@ -228,11 +228,11 @@ class ForecasterPipeline(_BasePipeline):
                 prediction[:, [idx]] = self.inverse_transform(prediction[:, [idx]])
         return prediction[start_idx:].squeeze()
 
-    def forecast(self, X, start_idx, trans_window=None):
+    def forecast(self, X, start_idx, forecast_window=None, trans_window=None):
         """
         Run out of sample predictions. That is, predict on X up until start_idx,
         use the predictions to concatenate data onto X, and continue predicting
-        for the full length of X.
+        for the full length of X (or forecast_window if specified).
 
         Parameters
         ----------
@@ -241,6 +241,9 @@ class ForecasterPipeline(_BasePipeline):
             of the pipeline.
         start_idx : int
             Index of X on which to start forecasting.
+        forecast_window : int (optional)
+            Number of steps to forecast into the future (defaults to forecast
+            the remainder of X, but can be longer or shorter).
         trans_window : int (optional)
             Number of previous values of X necessary for transforming X into
             features. Set this to speed up forecasting such that you do not have
@@ -258,7 +261,12 @@ class ForecasterPipeline(_BasePipeline):
         if trans_window is not None:
             assert start_idx > trans_window, (
                 'start_idx must be > than trans_window')
-
+        if forecast_window is not None:
+            assert forecast_window > 0, (
+                    'forecast_window must be a positive')
+            end_idx = start_idx + forecast_window
+        else:
+            end_idx=X.shape[0]
         # Run the prediction up until the starting index.
         # Note: We have to expand dims for multioutput results.
         X_init = expand_dim_if_needed(
@@ -267,16 +275,16 @@ class ForecasterPipeline(_BasePipeline):
 
         # Create the final prediction matrix and fill in all predictions up to
         # the starting index.
-        X_total = np.empty((X.shape[0], 1), dtype=np.float32)
+        X_total = np.empty((end_idx, 1), dtype=np.float32)
         X_total[:X_init.shape[0], 0] = X_init
 
         # For each out of sample point (aka >= start_idx)
-        for idx in range(start_idx, len(X)):
+        for idx in range(start_idx, end_idx):
 
             # Predict the next point
-            offset = trans_window or idx
+            start = 0 if trans_window==None else idx - trans_window
             next_point = expand_dim_if_needed(
-                self.predict(X_total[idx - offset:idx], to_scale=True,
+                self.predict(X_total[start:idx], to_scale=True,
                              refit=False)
             )[-1, 0]
 
