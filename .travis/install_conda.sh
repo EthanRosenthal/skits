@@ -15,4 +15,4 @@ rm ~/miniconda.sh
 
 conda install -y -q python=$PYTHON_VERSION
 
-conda install -y -q numpy scipy scikit-learn pytest pytest-cov pytest-mock
+pip install -r requirements.txt -r test-requirements.txt

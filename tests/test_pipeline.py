@@ -71,7 +71,9 @@ class TestPipelines:
         y = np.sin(2 * np.pi * 5 * l) + np.random.normal(0, .1, size=100)
 
         steps = list(self.steps)
-        steps.append(('classifier', LogisticRegression(fit_intercept=False)))
+        steps.append(
+            ('classifier', LogisticRegression(solver='lbfgs', fit_intercept=False))
+        )
 
         pipeline = ClassifierPipeline(steps)
 

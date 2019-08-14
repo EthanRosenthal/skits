@@ -2,7 +2,7 @@
 [![Build Status](https://travis-ci.org/EthanRosenthal/skits.svg?branch=master)](https://travis-ci.org/EthanRosenthal/skits)
 
 A library for
-**S**ci**K**it-**I**nspired **T**ime **S**eries models.
+**S**ci**K**it-learn-**I**nspired **T**ime **S**eries models.
 
 The primary goal of this library is to allow one to train time series prediction models using a similar API to `scikit-learn`. Consequently, similar to `scikit-learn`, this library consists of `preprocessors`, `feature_extractors`, and `pipelines`. 
 
