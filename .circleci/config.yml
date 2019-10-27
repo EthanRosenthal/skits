@@ -1,0 +1,50 @@
+# Python CircleCI 2.0 configuration file
+#
+# Check https://circleci.com/docs/2.0/language-python/ for more details
+version: 2
+jobs:
+  build:
+    docker:
+      - image: circleci/python:3.6.8
+
+    working_directory: ~/repo
+
+    steps:
+      - checkout
+
+      # Download and cache dependencies
+      - restore_cache:
+          keys:
+            - python-dependencies-{{ checksum "requirements.txt" }}-{{ checksum "test-requirements.txt" }}
+            # fallback to using the latest cache if no exact match is found
+            - python-dependencies-
+
+      - run:
+          name: install dependencies
+          command: |
+            python3 -m venv venv
+            . venv/bin/activate
+            pip install -r requirements.txt --quiet
+            pip install -r test-requirements.txt --quiet
+
+      - save_cache:
+          paths:
+            - ./venv
+          key: python-dependencies-{{ checksum "requirements.txt" }}-{{ checksum "test-requirements.txt" }}
+
+      - run:
+          name: run tests
+          command: |
+            . venv/bin/activate
+            pytest --cov-report html:.artifacts --cov skits/ tests/
+
+      - run:
+          name: run code QC
+          command: |
+            . venv/bin/activate
+            black --check skits
+            black --check tests
+
+      - store_artifacts:
+          path: .artifacts
+          destination: .artifacts-skits

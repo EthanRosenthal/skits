@@ -1,2 +1,4 @@
-pytest
-pytest-mock
+black==19.3b0
+pytest==5.2.2
+pytest-cov==2.7.1
+pytest-mock==1.11.2
