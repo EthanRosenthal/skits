@@ -1,5 +1,5 @@
 # skits
-[![Build Status](https://travis-ci.org/EthanRosenthal/skits.svg?branch=master)](https://travis-ci.org/EthanRosenthal/skits)
+[![CircleCI](https://circleci.com/gh/EthanRosenthal/skits/tree/master.svg?style=svg)](https://circleci.com/gh/EthanRosenthal/skits/tree/master)
 
 A library for
 **S**ci**K**it-learn-**I**nspired **T**ime **S**eries models.
