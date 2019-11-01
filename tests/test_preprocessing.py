@@ -95,7 +95,7 @@ class TestHorizonTransformer:
         X = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
         Xt = ht.fit_transform(X, X)
         expected = np.array(
-            [[1.0, 2.0], [2.0, 3.0], [3.0, 4.0], [np.nan, np.nan], [np.nan, np.nan]]
+            [[1.0, 2.0], [2.0, 3.0], [3.0, 4.0], [4.0, 5.0], [np.nan, np.nan]]
         )
         assert np.allclose(Xt, expected, equal_nan=True)
 

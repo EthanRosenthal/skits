@@ -144,9 +144,12 @@ class HorizonTransformer(BaseEstimator, TransformerMixin):
         if refit:
             self.autoregressive_transformer.fit(X)
         Xt = self.autoregressive_transformer.transform(X)
-        # Need to move beginning of Xt to the end.
-        Xt = np.vstack((Xt[self.horizon :, :], Xt[: self.horizon, :]))
-        # TODO: replace beginning with nans?
+        # The autoregressive transformer won't build lags _with_ the last element of X.
+        # So, we have to manually tack it on here.
+        last_non_nan_piece = np.hstack((Xt[-1, 1:], X[-1]))
+        Xt = np.vstack(
+            (Xt[self.horizon :, :], last_non_nan_piece, Xt[1 : self.horizon, :])
+        )
         return Xt
 
     def inverse_transform(self, X, y=None):
