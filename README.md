@@ -1,5 +1,6 @@
 # skits
 [![CircleCI](https://circleci.com/gh/EthanRosenthal/skits/tree/master.svg?style=svg)](https://circleci.com/gh/EthanRosenthal/skits/tree/master)
+[![PyPI version](https://badge.fury.io/py/skits.svg)](https://badge.fury.io/py/skits)
 
 A library for
 **S**ci**K**it-learn-**I**nspired **T**ime **S**eries models.
@@ -8,27 +9,11 @@ The primary goal of this library is to allow one to train time series prediction
 
 ## Installation
 
-Clone the library, create a virtual environment, and install the dependencies.
+Install with pip:
 
-Do this in one fell swoop with conda
-
-```bash
-conda env create -f environment.yml -n skits
+```commandline
+pip install skits
 ```
-
-Or install with pip after creating a virtual environment
-
-```bash
-pip install -r requirements.txt
-```
-
-You can install the library locally with
-
-```bash
-pip install -e .
-```
-
-
 
 ## Preprocessors
 
